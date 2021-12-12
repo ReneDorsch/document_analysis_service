@@ -10,7 +10,7 @@ import app.core.Datamodels.coordinating_model as cm
 import copy
 import json
 import os
-from app.core.config import OUTPUT_DIR
+from app.core.config import OUTPUT_DIRECTORY
 
 
 def _save_variables_as_json(variables, found_kObjs, variables_searchSpace, variables_frequency,
@@ -37,7 +37,7 @@ def _save_variables_as_json(variables, found_kObjs, variables_searchSpace, varia
         'knowledgeObjects': knowledgeObjects
     }]
     time_stamp = datetime.datetime.now().strftime("%d_%H_%M_%S")
-    with open(os.path.join(OUTPUT_DIR, f'{time_stamp}_variables.json'), 'w') as file:
+    with open(os.path.join(OUTPUT_DIRECTORY, f'{time_stamp}_variables.json'), 'w') as file:
         file.write(json.dumps(data, indent=4))
 
 
@@ -173,6 +173,8 @@ class DecisionMaker:
         table_decision, table_result = self.table_vote(answerDoc, t_answers)
         text_decision, text_result = self.text_vote(answerDoc, answers)
 
+        if "FRICTION_RATE" == answerDoc.questionTemplate.get_questionType()[0]:
+            print("ok")
         # For the Variation Answers (Answer where we allow multiple answers),
         # we have only to compare the answers
         if answerDoc.type == 'VARIATION':
@@ -257,8 +259,8 @@ class DecisionMaker:
 
     def _combine_answer_concepts_with_same_knowledgeObject(self,
                                                            answers: Tuple[List[Answer], List['KnowledgeObject']]) -> \
-    List[
-        Answer]:
+            List[
+                Answer]:
 
         res = answers[0]
         res2 = []
@@ -345,6 +347,9 @@ class DecisionMaker:
         answersByFrequency = self._combine_answer_concepts_with_same_knowledgeObject(answersByFrequency)
         answersBySearchSpace = self._combine_answer_concepts_with_same_knowledgeObject(answersBySearchSpace)
 
+        specific, _ = answerDoc.questionTemplate.get_questionType()
+        if specific == 'WEAR_RATE':
+            print("ok")
         # Make a decision
         if answerDoc.type == 'VARIATION':
             decision, result = self._vote_variation(answersByFrequency[0], answersBySearchSpace[0])

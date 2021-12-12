@@ -37,7 +37,7 @@ class AnswerDocument:
         self.final_result_textual_representation_table: str = ''
         self.final_result_knowledgeobject_table: str = ''
 
-        self._final_answer: Answer = None
+        self._final_answer: Union[Answer, List[Answer]] = None
         self._final_result: str = ''
 
         AnswerDocument.IDCounter += 1

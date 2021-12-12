@@ -8,6 +8,7 @@ from app.core.Datamodels.Question_Template import QuestionTemplate
 import app.core.Datamodels.coordinating_model as IS
 import torch
 
+
 class QuestionFabric:
     '''
     The QuestonFabric is a Interface between the decisionmaker and the actual question answering.
@@ -44,15 +45,14 @@ class QuestionFabric:
         '''
         # Initialize the Text QA Worker
         for i in range(self.__number_of_workers):
-            thread = Thread(target=text_question_worker, args=(self.__text_pipeline, ))
+            thread = Thread(target=text_question_worker, args=(self.__text_pipeline,))
             thread.start()
             self.__text_worker_threads.append(thread)
         # Initialize the Table QA Worker
         for i in range(self.__number_of_workers):
-            thread = Thread(target=table_question_worker, args=(self.__table_pipeline, ))
+            thread = Thread(target=table_question_worker, args=(self.__table_pipeline,))
             thread.start()
             self.__table_worker_threads.append(thread)
-
 
     def load_question_template_in_queue(self, doc: AnswerDocument):
         '''
@@ -63,7 +63,6 @@ class QuestionFabric:
         self._docs_in_pipeline.append(doc)
         self.__table_pipeline.put(doc)
         self.__text_pipeline.put(doc)
-
 
     def stop_question_worker(self):
         # Send stopsignal to the worker Trheads
@@ -113,10 +112,13 @@ class QuestionFabric:
         self._docs_in_pipeline = [_ for _ in self._docs_in_pipeline if _ not in questionTemplates]
 
     def send_question_template_to_decision_maker(self, questionTemplates: List[QuestionTemplate]):
-        self.infrastructure.interpret_decision([('to_decision_maker', questionTemplate) for questionTemplate in questionTemplates])
+        self.infrastructure.interpret_decision(
+            [('to_decision_maker', questionTemplate) for questionTemplate in questionTemplates])
 
     def send_question_template_to_scheduler(self, questionTemplates: List[QuestionTemplate]):
-        self.infrastructure.interpret_decision([('variables', questionTemplate) for questionTemplate in questionTemplates])
+        self.infrastructure.interpret_decision(
+            [('variables', questionTemplate) for questionTemplate in questionTemplates])
 
     def reject_question_templates(self, questionTemplates: List[QuestionTemplate]):
-        self.infrastructure.interpret_decision([('rejected', questionTemplate) for questionTemplate in questionTemplates])
+        self.infrastructure.interpret_decision(
+            [('rejected', questionTemplate) for questionTemplate in questionTemplates])

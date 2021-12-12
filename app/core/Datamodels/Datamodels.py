@@ -571,19 +571,27 @@ class Table:
         self._knowledgeObjects: List[KnowledgeObject] = []
         self._table_name: str = ''
         self.description: List[Sentence] = []
+        self.table_data = []
+
+    def table_as_list(self) -> List:
+
+        data_lines = [[_._text for _ in line.cells] for line in self._data]
+        res = DataFrame(data_lines, index=[_._text for _ in self._table_header.cells]).T
+
+        return res
 
     def get_knowledgeObjects(self) -> List[KnowledgeObject]:
         return self._knowledgeObjects
 
 
-    def get_cell_at(self, row, column) -> Cell:
+    def get_cell_at(self, cell_coordinates) -> Cell:
         # If the first row was selected it is the labels
         #if row == 0:
         #    return self._table_header.get_cell_at(column)
         # Else it is the data
         #else:
 
-        return self._data[row].get_cell_at(column)
+        return self._data[cell_coordinates.column].get_cell_at(cell_coordinates.row)
 
 
     def get_textual_representation(self):
@@ -601,9 +609,7 @@ class Table:
                 self._table_name = res.group()
 
     def as_pandas_df(self) -> DataFrame:
-        data_lines = [line.as_list() for line in self._data]
-        labels = self._table_header.as_list()
-        table = DataFrame(data_lines, columns=labels)
+        table = self.table_as_list()
         return table
 
 
@@ -648,6 +654,7 @@ class Table:
 
         table._set_units()
         table._set_table_name()
+        table.table_data = table.get_table_name()
 
         return table
 
@@ -1026,7 +1033,7 @@ class TableAnswer(Answer):
             knowledgeObjects = []
             cell = None
         else:
-            cell = context.get_cell_at(*answer)
+            cell = context.get_cell_at(answer)
             knowledgeObjects = cell.get_knowledgeObjects()
             textual_answer = cell.get_text()
         question = Question(question)
@@ -1135,8 +1142,8 @@ class TableContext(Context):
         copy._textual_representation = context._textual_representation
 
         return copy
-    def get_cell_at(self, row, column):
-        return self._table.get_cell_at(row, column)
+    def get_cell_at(self, cell_coordinates):
+        return self._table.get_cell_at(cell_coordinates)
 
     def as_pandas_df(self):
         return self._table.as_pandas_df()

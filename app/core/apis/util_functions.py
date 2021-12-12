@@ -9,7 +9,7 @@ def save_data(file):
 
     now = datetime.now()
     date_and_time: str = now.strftime('%m_%d_%Y_%H_%M_%S')
-    path_to_json = os.path.join(config.INPUT_DIR, f'{date_and_time}.json')
+    path_to_json = os.path.join(config.INPUT_DIRECTORY, f'{date_and_time}.json')
     with open(path_to_json, 'w') as input:
         # Converts the Input in a json document and save it inside the current working directory
         json.dump(file, input)

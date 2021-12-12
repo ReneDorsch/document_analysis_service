@@ -46,8 +46,8 @@ def context_worker():
         save_as_json(data, task.get_path())
 
         # Delete the Task to keep everything small and easy
-        del task
         context_analyzer.postprocess()
+        del task
         print("Task done")
         queue.task_done()
 

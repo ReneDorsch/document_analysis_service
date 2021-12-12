@@ -1,18 +1,21 @@
 from __future__ import annotations
 from typing import List, Dict, Tuple, Iterator
 from queue import Queue
-from app.core import config
-from transformers import pipeline, TapasTokenizer, TapasForQuestionAnswering
+
 import torch
+from transformers import pipeline, TapasTokenizer, TapasForQuestionAnswering
+
+from app.core import config
 from app.core.Datamodels.Datamodels import TableContext, TableAnswer, TextContext, TextAnswer, Question
 from app.core.Datamodels.Answer_Document import AnswerDocument
 import pandas as pd
 
 
+
 def text_question_worker(queue: Queue):
     print("bin in text Question Worker")
 
-    pip = initializePipeline()
+    pip = initializeTextPipeline()
     print("Pipelines initialisiert")
     while True:
 
@@ -46,20 +49,6 @@ def text_question_worker(queue: Queue):
         queue.task_done()
 
 
-def initializePipeline() -> pipeline:
-    device: int = -1
-    if torch.cuda.is_available():
-        device = torch.cuda.current_device()
-    else:
-        torch.cuda.set_device(device)
-    return pipeline(
-        task="question-answering",                      # Type of Task
-        model=config.QA_MODEL,          # Model used for QA
-        tokenizer=config.QA_TOKENIZER,  # Tokenizer used to transform the words in a vector
-        device=device                                   # device>0 -> GPU, device<0 CPU
-    )
-
-
 def askQuestions(searchEngine: pipeline, questionsContexts, batchSize: int = 8) -> Iterator[Tuple[
     Question, Context, Answer]]:
     questions = [_[0].get_question() for _ in questionsContexts]
@@ -85,19 +74,6 @@ def askQuestions(searchEngine: pipeline, questionsContexts, batchSize: int = 8) 
 ########################################################################################################################
 
 
-def initializeTablePipeline() -> pipeline:
-
-
-    # Load pretrained tokenizer: TAPAS finetuned on WikiTable Questions
-    tokenizer = TapasTokenizer.from_pretrained(config.T_QA_TOKENIZER)
-
-    # Load pretrained model: TAPAS finetuned on WikiTable Questions
-    model = TapasForQuestionAnswering.from_pretrained(config.T_QA_MODELL)
-
-
-    return model, tokenizer
-
-
 def prepare_inputs(tables: List['Table'], questions, tokenizer):
     """
       Convert dictionary into data frame and tokenize inputs given queries.
@@ -110,6 +86,7 @@ def prepare_inputs(tables: List['Table'], questions, tokenizer):
         try:
             table_df = table.as_pandas_df()
         except ValueError:
+            table.as_pandas_df()
             continue
         if distinct_tables == []:
             distinct_tables.append(table_df)
@@ -168,6 +145,10 @@ def postprocess_predictions(predictions, tables):
     """
       Compute the predicted operation and nicely structure the answers.
     """
+    class Cell:
+        def __init__(self, row, column):
+            self.row: int = row
+            self.column: int = column
     # Process predicted table cell coordinates
     answers = []
     for prediction, table in zip(predictions, tables):
@@ -178,12 +159,12 @@ def postprocess_predictions(predictions, tables):
         for coordinates in predicted_table_cell_coords:
             if len(coordinates) == 1:
                 # 1 cell
-                answers.append(coordinates[0])
+                answers.append(Cell(*coordinates[0]))
             else:
                 # > 1 cell
                 cell_values = []
                 for coordinate in coordinates:
-                    cell_values.append(coordinate)
+                    cell_values.append(Cell(*coordinate))
                 answers.append(cell_values)
 
     # Return values
@@ -209,7 +190,7 @@ def table_question_worker(queue: Queue):
 
             for question, context, answer in result:
                 # If there is only one answer for the question
-                if isinstance(answer, tuple):
+                if not isinstance(answer, list):
                     answerList.append(TableAnswer(answer, question, context))
                 # If there are serveral answers
                 else:
@@ -238,3 +219,30 @@ def ask_table_questions(model, tokenizer, questionsContexts) -> Iterator[Tuple[
     predictions = generate_predictions(prepared_input, model, tokenizer)
     answers = postprocess_predictions(predictions, prepared_input)
     return [_ for _ in zip([_[1] for _ in questions_context_tuple], [_[0] for _ in questions_context_tuple], answers)]
+
+
+def initializeTablePipeline() -> pipeline:
+
+
+    # Load pretrained tokenizer: TAPAS finetuned on WikiTable Questions
+    tokenizer = TapasTokenizer.from_pretrained(config.T_QA_TOKENIZER)
+
+    # Load pretrained model: TAPAS finetuned on WikiTable Questions
+    model = TapasForQuestionAnswering.from_pretrained(config.T_QA_MODELL)
+
+
+    return model, tokenizer
+
+
+def initializeTextPipeline() -> pipeline:
+    device: int = -1
+    if torch.cuda.is_available():
+        device = torch.cuda.current_device()
+    else:
+        torch.cuda.set_device(device)
+    return pipeline(
+        task="question-answering",                      # Type of Task
+        model=config.QA_MODEL,          # Model used for QA
+        tokenizer=config.QA_TOKENIZER,  # Tokenizer used to transform the words in a vector
+        device=device                                   # device>0 -> GPU, device<0 CPU
+    )

@@ -6,19 +6,15 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+import os
 from routers import analysis
+
+from app.core.config import TMP_DIRECTORY
 
 app = FastAPI()
 app.include_router(analysis.router)
 
 subprocesses: List[subprocess.Popen] = []
-
-
-@app.on_event("startup")
-async def startup_event():
-    """ Start GrobID in the Background. """
-
-    pass
 
 
 @app.on_event("shutdown")
@@ -27,6 +23,12 @@ def shutdown_event():
     for process in subprocesses:
         process.kill()
 
+    # Deletes all files in the tmp directories
+    for dir, _, files in os.walk(TMP_DIRECTORY):
+        for file in files:
+            file_path = os.path.join(dir, file)
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request, exc):

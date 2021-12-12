@@ -2,7 +2,7 @@ from fastapi import Response, APIRouter, File, UploadFile, BackgroundTasks, Requ
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT, HTTP_404_NOT_FOUND, HTTP_200_OK
 
 from app.core.Datamodels.IO_Models import InputData
-from app.core.task_api import TaskBuilder, TaskStatus
+from app.core.task_api.tasks import TaskBuilder, TaskStatus
 from app.core.schemas import LogFile, AnswerDocumentList, HypothesisList
 router = APIRouter()
 
